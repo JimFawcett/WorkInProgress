@@ -20,7 +20,7 @@ use std::io::{BufReader, BufWriter, Write};
 type M = Message;
 type Que = BlockingQueue<Message>;
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub struct CommProcessing<M>
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
@@ -29,6 +29,11 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
 impl CommProcessing<M>
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
+    pub fn new() -> CommProcessing<M> {
+        CommProcessing {
+            m:M::new(),
+        }
+    }
     pub fn send_message(msg: M, stream: &mut TcpStream) -> std::io::Result<()>
     {
         let typebyte = msg.get_type();
@@ -110,8 +115,15 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
 }
 #[cfg(test)]
 mod tests {
+    use super::*;
     #[test]
-    fn it_works() {
+    fn construction() {
+        let msg = Message::new();
+        let _cp = CommProcessing::<Message>::default();
+        let addr = "127.0.0.1:8080";
+        let _lstnr = std::net::TcpListener::bind(addr);
+        let mut stream = std::net::TcpStream::connect(addr).unwrap();
+        let _ = CommProcessing::send_message(msg, &mut stream);
         assert_eq!(2 + 2, 4);
     }
 }
