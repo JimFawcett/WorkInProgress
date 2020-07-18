@@ -18,23 +18,27 @@ use std::io::{BufReader, BufWriter, Write};
 
 
 type M = Message;
-type Que = BlockingQueue<Message>;
+//type Que = BlockingQueue<M>;
 
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug)]
 pub struct CommProcessing<M>
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
-    m: M,
+    que: BlockingQueue<M>,
 }
-impl CommProcessing<M>
+impl<M> CommProcessing<M>
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
     pub fn new() -> CommProcessing<M> {
         CommProcessing {
-            m:M::new(),
+            que: BlockingQueue::new(),
         }
     }
-    pub fn send_message(msg: M, stream: &mut TcpStream) -> std::io::Result<()>
+}
+impl<M> Sndr<M> for CommProcessing<M>
+where M: Msg + std::fmt::Debug + Clone + Send + Default,
+{
+    fn send_message(msg: M, stream: &mut TcpStream) -> std::io::Result<()>
     {
         let typebyte = msg.get_type();
         let buf = [typebyte];
@@ -46,7 +50,7 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         let _ = stream.flush();
         Ok(())
     }
-    pub fn buf_send_message(msg: M, stream: &mut BufWriter<TcpStream>) -> std::io::Result<()>
+    fn buf_send_message(msg: M, stream: &mut BufWriter<TcpStream>) -> std::io::Result<()>
     {
         let typebyte = msg.get_type();
         let buf = [typebyte];
@@ -58,9 +62,13 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         let _ = stream.flush();
         Ok(())
     }
-    pub fn recv_message(stream: &mut TcpStream, q: &BlockingQueue<M>) -> std::io::Result<()> 
+}
+impl<M> Rcvr<M> for CommProcessing<M>
+where M: Msg + std::fmt::Debug + Clone + Send + Default,
+{
+    fn recv_message(stream: &mut TcpStream, q:BlockingQueue<M>) -> std::io::Result<()> 
     {
-        let mut msg = Message::new();
+        let mut msg = M::default();
         /*-- get MessageType --*/
         let buf = &mut [0u8; 1];
         stream.read_exact(buf)?;
@@ -81,7 +89,7 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         q.en_q(msg);
         Ok(())
     }
-    pub fn buf_recv_message(stream: &mut BufReader<TcpStream>, q: &BlockingQueue<M>) -> std::io::Result<()> 
+    fn buf_recv_message(stream: &mut BufReader<TcpStream>, q: BlockingQueue<M>) -> std::io::Result<()> 
     where M: Msg + std::fmt::Debug + Clone + Send + Default,
     {
         let mut msg = M::default();
@@ -105,9 +113,13 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         q.en_q(msg);
         Ok(())
     }
-    pub fn process_message(&self, m: M) -> M 
+}
+impl<M> Process<M> for CommProcessing<M> 
+where M: Msg + std::fmt::Debug + Clone + Send + Default,
+{
+    fn process_message(&self, m: M) -> M 
     {
-        M::show_msg(&m);
+        m.show_msg();
         let rply = M::default();
         // msg
         rply

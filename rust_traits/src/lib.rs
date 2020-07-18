@@ -2,6 +2,7 @@
 
 use std::net::{TcpStream};
 use std::io::{BufReader, BufWriter, Result};
+use rust_blocking_queue::*;
 
 pub trait MsgType : Send {
     fn get_type(&self) -> u8;
@@ -18,6 +19,7 @@ pub trait Msg : Send {
     fn get_body_str(&self) -> String;
     fn clear(&mut self);
     fn type_display(&self) -> String;
+    fn show_msg(&self);
 }
 // pub trait Que<Msg> : Send {
 //     fn en_q(&self, m: Msg);
@@ -28,18 +30,18 @@ pub trait Sndr<M> : Send
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
     fn send_message(msg: M, stream: &mut TcpStream) -> Result<()>;
-    fn buf_send_message(msg: &dyn Msg, stream: &mut BufWriter<TcpStream>) -> Result<()>;
+    fn buf_send_message(msg: M, stream: &mut BufWriter<TcpStream>) -> Result<()>;
 }
-pub trait Rcvr<M> : Send 
+pub trait Rcvr<M>: Send 
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
-    fn recv_message<Que>(stream: &mut TcpStream, q:Que) -> Result<()>;
-    fn buf_recv_message<Que>(stream: &mut BufReader<TcpStream>, q:Que) -> Result<()>;
+    fn recv_message(stream: &mut TcpStream, q:BlockingQueue<M>) -> Result<()>;
+    fn buf_recv_message(stream: &mut BufReader<TcpStream>, q:BlockingQueue<M>) -> Result<()>;
 }
 pub trait Process<M> : Send 
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
-    fn process_message(&self, m: &dyn Msg) -> &'static dyn Msg;
+    fn process_message(&self, m: M) -> M;
 }
 #[cfg(test)]
 mod tests {

@@ -109,6 +109,9 @@ impl Msg for Message {
         }
         s
     }
+    fn show_msg(&self) {
+        print!("\n  {:?}",&self);
+    }
 }
 impl Message {
     pub fn new() -> Message {

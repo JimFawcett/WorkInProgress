@@ -23,3 +23,6 @@ dependencies = [
 [[package]]
 name = "rust_traits"
 version = "0.1.0"
+dependencies = [
+ "rust_blocking_queue",
+]
