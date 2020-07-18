@@ -8,8 +8,6 @@ use rust_traits::*;
 use rust_message::*;
 use rust_blocking_queue::*;
 
-//use crate::comm_message::{Message, MessageType, Message::get_type};
-// use crate::comm_message::{Message};
 use std::fmt::*;
 use std::net::{TcpStream};
 //use std::net::*;
@@ -18,24 +16,20 @@ use std::io::{BufReader, BufWriter, Write};
 
 
 type M = Message;
-//type Que = BlockingQueue<M>;
 
-#[derive(Debug)]
-pub struct CommProcessing<M>
-where M: Msg + std::fmt::Debug + Clone + Send + Default,
-{
-    que: BlockingQueue<M>,
+#[derive(Debug, Copy, Clone, Default)]
+pub struct CommProcessing {
+    /* applications may need to add members here */
 }
-impl<M> CommProcessing<M>
-where M: Msg + std::fmt::Debug + Clone + Send + Default,
+impl CommProcessing
 {
-    pub fn new() -> CommProcessing<M> {
+    pub fn new() -> CommProcessing {
         CommProcessing {
-            que: BlockingQueue::new(),
+            /* initialize members */
         }
     }
 }
-impl<M> Sndr<M> for CommProcessing<M>
+impl<M> Sndr<M> for CommProcessing
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
     fn send_message(msg: M, stream: &mut TcpStream) -> std::io::Result<()>
@@ -52,6 +46,7 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
     }
     fn buf_send_message(msg: M, stream: &mut BufWriter<TcpStream>) -> std::io::Result<()>
     {
+        print!("\n  -- entered buf_send_message --");
         let typebyte = msg.get_type();
         let buf = [typebyte];
         stream.write(&buf)?;
@@ -63,10 +58,10 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         Ok(())
     }
 }
-impl<M> Rcvr<M> for CommProcessing<M>
+impl<M> Rcvr<M> for CommProcessing
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
-    fn recv_message(stream: &mut TcpStream, q:BlockingQueue<M>) -> std::io::Result<()> 
+    fn recv_message(stream: &mut TcpStream, q:&BlockingQueue<M>) -> std::io::Result<()> 
     {
         let mut msg = M::default();
         /*-- get MessageType --*/
@@ -75,9 +70,9 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         let msgtype = buf[0];
         msg.set_type(msgtype);
         /*-- get body size --*/
-        let buf = &mut [0u8; 4];
-        stream.read_exact(buf)?;
-        let bdysz = usize::from_be_bytes(*buf);
+        let mut buf = [0u8; 8];
+        stream.read_exact(&mut buf)?;
+        let bdysz = usize::from_be_bytes(buf);
         /*-- get body bytes --*/
         let mut bdy = vec![0u8;bdysz];
         stream.read_exact(&mut bdy)?;
@@ -89,9 +84,10 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         q.en_q(msg);
         Ok(())
     }
-    fn buf_recv_message(stream: &mut BufReader<TcpStream>, q: BlockingQueue<M>) -> std::io::Result<()> 
+    fn buf_recv_message(stream: &mut BufReader<TcpStream>, q: &BlockingQueue<M>) -> std::io::Result<()> 
     where M: Msg + std::fmt::Debug + Clone + Send + Default,
     {
+        print!("\n  -- entered buf_recv_message --");
         let mut msg = M::default();
         /*-- get MessageType --*/
         let buf = &mut [0u8; 1];
@@ -99,13 +95,14 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         let msgtype = buf[0];
         msg.set_type(msgtype);
         /*-- get body size --*/
-        let buf = &mut [0u8; 4];
-        stream.read_exact(buf)?;
-        let bdysz = usize::from_be_bytes(*buf);
+        let mut buf = [0u8; 8];
+        stream.read_exact(&mut buf)?;
+        let bdysz = usize::from_be_bytes(buf);
         /*-- get body bytes --*/
         let mut bdy = vec![0u8;bdysz];
         stream.read_exact(&mut bdy)?;
         msg.set_body_bytes(bdy);
+        //print!("\n  -- received msg: {:?} --",msg);
         let mut mod_body = msg.get_body_str();
         mod_body.push_str(" reply");
         msg.clear();
@@ -114,14 +111,15 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         Ok(())
     }
 }
-impl<M> Process<M> for CommProcessing<M> 
+impl<M> Process<M> for CommProcessing
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
-    fn process_message(&self, m: M) -> M 
+    fn process_message(m: M) -> M 
     {
-        m.show_msg();
-        let rply = M::default();
-        // msg
+        print!("\n  -- entered process_message --");
+        print!("\n  msg body: {:?}", m.get_body_str());
+        //m.show_msg();
+        let rply = m;
         rply
     }
 }

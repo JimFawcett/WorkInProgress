@@ -8,7 +8,7 @@ use rust_message::*;
 
 fn construction() {
     let msg = Message::new();
-    let _cp = CommProcessing::<Message>::new();
+    let _cp = CommProcessing::new();
     let addr = "127.0.0.1:8080";
     let _lstnr = TcpListener::bind(addr);
     let mut stream = TcpStream::connect(addr).unwrap();

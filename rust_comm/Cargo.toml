@@ -9,5 +9,5 @@ edition = "2018"
 [dependencies]
 rust_traits = { path = "../rust_traits" }
 rust_message = { path = "../rust_message" }
-rust_blocking_queue = { path = "../../RustBlockingQueue" }
+rust_blocking_queue = { path = "../rust_blocking_queue" }
 rust_comm_processing = { path = "../rust_comm_processing" }

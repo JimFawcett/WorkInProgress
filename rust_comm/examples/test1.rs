@@ -13,6 +13,8 @@
 //mod comm_message;
 //use comm_message::*;
 
+use std::io::prelude::*;
+
 /*-- component library rust_blocking_queue --*/
 use rust_blocking_queue::*;
 use rust_message::*;
@@ -21,17 +23,29 @@ use rust_comm_processing::*;
 use rust_comm::*;
 
 type M = Message;
-type P = CommProcessing<M>;
+type P = CommProcessing;
 
 fn main() {
-    let conn = Connector::<P,M>::new();
-    let lsnr = Listener::<P,M>::new();
-    lsnr.start("127.0.0.1:8080");
-    conn.start("127.0.0.1:8080");
-    let msg = Message::new();
+    let addr = "127.0.0.1:8080";
+    let mut lsnr = Listener::<P>::new();
+    let handle = lsnr.start(addr).unwrap();
+    // let handle = std::thread::spawn(move || {
+    //     let _rslt = lsnr.start(addr);
+    // });
+    //let _rslt = lsnr.start(addr);
+    let conn = Connector::<P,M>::new(addr);
+    //conn.start(addr);
+    let mut msg = Message::new();
     msg.set_type(MessageType::TEXT);
     msg.set_body_str("message #1");
     conn.post_message(msg);
-
-
+    let msg = conn.get_message();
+    print!("\n  mian received msg: {:?}",msg.get_body_str());
+    let mut msg = Message::new();
+    msg.set_type(MessageType::QUIT);
+    conn.post_message(msg);
+    let _ = std::io::stdout().flush();
+    let _ = handle.join();
+    // let mut reply = String::new();
+    // let _ = std::io::stdin().read_to_string(&mut reply);
 }

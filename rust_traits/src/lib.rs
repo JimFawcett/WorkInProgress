@@ -35,13 +35,13 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
 pub trait Rcvr<M>: Send 
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
-    fn recv_message(stream: &mut TcpStream, q:BlockingQueue<M>) -> Result<()>;
-    fn buf_recv_message(stream: &mut BufReader<TcpStream>, q:BlockingQueue<M>) -> Result<()>;
+    fn recv_message(stream: &mut TcpStream, q:&BlockingQueue<M>) -> Result<()>;
+    fn buf_recv_message(stream: &mut BufReader<TcpStream>, q:&BlockingQueue<M>) -> Result<()>;
 }
 pub trait Process<M> : Send 
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {
-    fn process_message(&self, m: M) -> M;
+    fn process_message(m: M) -> M;
 }
 #[cfg(test)]
 mod tests {
