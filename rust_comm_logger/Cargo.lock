@@ -12,23 +12,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust_comm_processing"
-version = "0.1.0"
-dependencies = [
- "rust_blocking_queue",
- "rust_comm_logger",
- "rust_message",
- "rust_traits",
-]
-
-[[package]]
-name = "rust_message"
-version = "0.1.0"
-dependencies = [
- "rust_traits",
-]
-
-[[package]]
 name = "rust_traits"
 version = "0.1.0"
 dependencies = [

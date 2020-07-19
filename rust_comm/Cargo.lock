@@ -9,8 +9,16 @@ name = "rust_comm"
 version = "0.1.0"
 dependencies = [
  "rust_blocking_queue",
+ "rust_comm_logger",
  "rust_comm_processing",
  "rust_message",
+ "rust_traits",
+]
+
+[[package]]
+name = "rust_comm_logger"
+version = "0.1.0"
+dependencies = [
  "rust_traits",
 ]
 
@@ -19,6 +27,7 @@ name = "rust_comm_processing"
 version = "0.1.0"
 dependencies = [
  "rust_blocking_queue",
+ "rust_comm_logger",
  "rust_message",
  "rust_traits",
 ]

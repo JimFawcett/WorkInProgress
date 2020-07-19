@@ -4,6 +4,9 @@ use std::net::{TcpStream};
 use std::io::{BufReader, BufWriter, Result};
 use rust_blocking_queue::*;
 
+pub trait Logger : Send {
+    fn write(msg: &str);
+}
 pub trait MsgType : Send {
     fn get_type(&self) -> u8;
     fn set_type(&mut self, mt:u8);
@@ -21,11 +24,6 @@ pub trait Msg : Send {
     fn type_display(&self) -> String;
     fn show_msg(&self);
 }
-// pub trait Que<Msg> : Send {
-//     fn en_q(&self, m: Msg);
-//     fn de_q(&self) -> Msg;
-//     fn len(&self) -> usize;
-// }
 pub trait Sndr<M> : Send 
 where M: Msg + std::fmt::Debug + Clone + Send + Default,
 {

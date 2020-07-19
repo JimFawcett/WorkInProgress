@@ -1,36 +1,54 @@
-// processing.rs
+/////////////////////////////////////////////////////////////
+// rust_comm_processing::lib.rs - Application Specific     //
+//                                                         //
+// Jim Fawcett, https://JimFawcett.github.io, 19 Jul 2020  //
+/////////////////////////////////////////////////////////////
+/*
+   CommProcessing<L>:
+   - defines send_message, recv_message, and process_message
+   - each of these needs to be tailored to the specifics of
+     the Message class
+*/
 
 #![allow(dead_code)]
 
-/*-- Comm Message --*/
-
+/*-- RustComm facilities --*/
 use rust_traits::*;
 use rust_message::*;
 use rust_blocking_queue::*;
 
+/*-- std library facilities --*/
 use std::fmt::*;
 use std::net::{TcpStream};
-//use std::net::*;
 use std::io::prelude::*;
 use std::io::{BufReader, BufWriter, Write};
 
-
 type M = Message;
 
+/*---------------------------------------------------------
+  CommProcessing<L> 
+  - defines application specific processing for the
+    appliczation's message type
+  - L is a logger type the must implement the Logger trait
+*/
 #[derive(Debug, Copy, Clone, Default)]
-pub struct CommProcessing {
-    /* applications may need to add members here */
+pub struct CommProcessing<L>
+where L: Logger + Debug + Copy + Clone + Default {
+    log: L,
 }
-impl CommProcessing
+impl<L> CommProcessing<L>
+where L: Logger + Debug + Copy + Clone + Default
 {
-    pub fn new() -> CommProcessing {
+    pub fn new() -> CommProcessing<L> {
         CommProcessing {
-            /* initialize members */
+            log: L::default(),
         }
     }
 }
-impl<M> Sndr<M> for CommProcessing
-where M: Msg + std::fmt::Debug + Clone + Send + Default,
+impl<M,L> Sndr<M> for CommProcessing<L>
+where 
+    M: Msg + std::fmt::Debug + Clone + Send + Default,
+    L: Logger + Debug + Copy + Clone + Default
 {
     fn send_message(msg: M, stream: &mut TcpStream) -> std::io::Result<()>
     {
@@ -46,7 +64,6 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
     }
     fn buf_send_message(msg: M, stream: &mut BufWriter<TcpStream>) -> std::io::Result<()>
     {
-        print!("\n  -- entered buf_send_message --");
         let typebyte = msg.get_type();
         let buf = [typebyte];
         stream.write(&buf)?;
@@ -58,10 +75,15 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         Ok(())
     }
 }
-impl<M> Rcvr<M> for CommProcessing
-where M: Msg + std::fmt::Debug + Clone + Send + Default,
+impl<M,L> Rcvr<M> for CommProcessing<L>
+where 
+    M: Msg + std::fmt::Debug + Clone + Send + Default,
+    L: Logger + Debug + Copy + Clone + Default
 {
-    fn recv_message(stream: &mut TcpStream, q:&BlockingQueue<M>) -> std::io::Result<()> 
+    /*-- reads message and enques in supplied BlockingQueue<M> --*/
+    fn recv_message(
+        stream: &mut TcpStream, q:&BlockingQueue<M>
+    ) -> std::io::Result<()> 
     {
         let mut msg = M::default();
         /*-- get MessageType --*/
@@ -77,17 +99,15 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         let mut bdy = vec![0u8;bdysz];
         stream.read_exact(&mut bdy)?;
         msg.set_body_bytes(bdy);
-        let mut mod_body = msg.get_body_str();
-        mod_body.push_str(" reply");
-        msg.clear();
-        msg.set_body_str(&mod_body);
         q.en_q(msg);
         Ok(())
     }
-    fn buf_recv_message(stream: &mut BufReader<TcpStream>, q: &BlockingQueue<M>) -> std::io::Result<()> 
-    where M: Msg + std::fmt::Debug + Clone + Send + Default,
+    /*-- same as above but uses buffered reader --*/
+    fn buf_recv_message(
+        stream: &mut BufReader<TcpStream>, 
+        q: &BlockingQueue<M>
+    ) -> std::io::Result<()> 
     {
-        print!("\n  -- entered buf_recv_message --");
         let mut msg = M::default();
         /*-- get MessageType --*/
         let buf = &mut [0u8; 1];
@@ -102,25 +122,28 @@ where M: Msg + std::fmt::Debug + Clone + Send + Default,
         let mut bdy = vec![0u8;bdysz];
         stream.read_exact(&mut bdy)?;
         msg.set_body_bytes(bdy);
-        //print!("\n  -- received msg: {:?} --",msg);
-        let mut mod_body = msg.get_body_str();
-        mod_body.push_str(" reply");
-        msg.clear();
-        msg.set_body_str(&mod_body);
         q.en_q(msg);
         Ok(())
     }
 }
-impl<M> Process<M> for CommProcessing
-where M: Msg + std::fmt::Debug + Clone + Send + Default,
+/*---------------------------------------------------------
+  Process<M> handles processing of each message on 
+  Listener<P,L>
+*/
+impl<M,L> Process<M> for CommProcessing<L>
+where 
+    M: Msg + std::fmt::Debug + Clone + Send + Default,
+    L: Logger + Debug + Copy + Clone + Default
 {
     fn process_message(m: M) -> M 
     {
-        print!("\n  -- entered process_message --");
-        print!("\n  msg body: {:?}", m.get_body_str());
-        //m.show_msg();
-        let rply = m;
-        rply
+        L::write("\n--entered process_message--");
+        let mut msg = M::default();
+        msg.set_type(MessageType::REPLY);
+        let mut s = m.get_body_str();
+        s.push_str(" reply");
+        msg.set_body_str(&s);
+        msg
     }
 }
 #[cfg(test)]

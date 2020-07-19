@@ -13,3 +13,4 @@ doctest = false
 rust_traits = { path = "../rust_traits" }
 rust_message = { path = "../rust_message" }
 rust_blocking_queue = { path = "../rust_blocking_queue" }
+rust_comm_logger = { path = "../rust_comm_logger" }
